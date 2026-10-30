@@ -246,6 +246,23 @@ body.full-color{--base-bg:#ebe7de}
 #machine>.bottom{display:none!important}
 @media(max-width:760px){main{padding:max(8px,env(safe-area-inset-top)) 6px max(8px,env(safe-area-inset-bottom))}}
 #overlay.scrollable>.panel{min-height:100%;display:flex;flex-direction:column}.stage-card2{flex:1;display:flex;flex-direction:column}.stage-card2 .sc-field{flex:1;height:auto;min-height:156px}.launch-bar{margin-top:0}
+/* Phone: full-bleed game, HUD and set chips float over the playfield. */
+.pause-audio{display:flex;gap:8px;margin:8px 0}.pause-audio .switch{flex:1;min-height:42px}
+@media(max-width:760px){
+ main{padding:0!important;gap:0}
+ #machine{border:0!important;box-shadow:none!important;position:relative}
+ #machine>header{position:absolute;left:0;right:0;top:0;z-index:5;height:auto!important;padding:calc(8px + env(safe-area-inset-top)) 12px 10px!important;background:linear-gradient(#000d 55%,#0000)}
+ #machine>#xp{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));z-index:5;height:3px;background:#ffffff22}
+ #boss{top:calc(56px + env(safe-area-inset-top))!important}
+ #machine>.game-toolbar{position:absolute;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:5;min-height:0;padding:0;background:transparent;border:0;gap:0}
+ .game-toolbar .audio-controls{display:none!important}
+ .game-toolbar #set-status{flex:none;gap:3px;min-height:0}.game-toolbar #set-status span{flex:none;min-width:34px;min-height:20px;padding:2px 4px;font-size:10px!important;background:#000a;border-color:#555}
+ #reverse{bottom:calc(10px + env(safe-area-inset-bottom))}
+ #overlay{padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+ #overlay.scrollable{padding:0}
+ .base-top{padding-top:calc(12px + env(safe-area-inset-top))!important}
+ .launch-bar{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+}
 </style><!--
 MONO FLIGHT — Claude handoff / 2026-10-30
 Single HTML plus fonts/ (Galmuri11 regular/bold, OFL). No libraries, images, network or build step.
@@ -257,7 +274,7 @@ Progress is browser-local: mono-flight-progress-v1, schema version 3 (v2 cleared
 Progress from the hosted website is NOT transferred into this file.
 Design: monochrome pixel graphics, hostile bullets red; readable short Korean UI.
 3 hearts; vertical auto-fire, drag/WASD/arrows; ESC pauses.
-Playfield is 288 wide; height H adapts to the screen between 448 and 560 (fitScreen), fixed during a run.
+Playfield is 288 wide; height H adapts to the screen between 448 and 640 (fitScreen), fixed during a run. On phones (<=760px) the game is full-bleed: HUD, XP bar and set chips float over the canvas; sound toggles live in pause and settings.
 30 stages in 6 chapters (CHAPTERS). Stage n-1..n-4: 90 sec then an elite; n-5: boss at 150 sec. Cleared stages are replayable at half reward.
 Stars: clear / 2+ hearts / no damage, 20 parts each; 15 chapter stars give one free crate.
 Chapter 1 beginner tuning: no shots for 8 sec in 1-1; hit invulnerability 1.4 sec; no rushers; boss HP 300 with no radial volleys. All enemy HP ×1.2 (fractional), elite HP 70×chapter multiplier.
@@ -472,8 +489,8 @@ function panel(html,scroll=false,preservePosition=false){
 }
 function hidePanel(){c.classList.remove('flight-enter');void c.offsetWidth;c.classList.add('flight-enter');const overlay=$('#overlay');overlay.hidden=true;overlay.className='';overlay.innerHTML='';overlay.scrollTop=0}
 
-const PLAY_UI=114,H_MIN=448,H_MAX=560;
-function fitScreen(){const m=document.querySelector('main'),cs=getComputedStyle(m),availH=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),availW=Math.min(m.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),innerWidth>760?440:9999),stageMax=Math.max(200,availH-PLAY_UI);const busy=['playing','paused','upgrade','victory'].includes(state);
+const H_MIN=448,H_MAX=640;const isPhone=()=>innerWidth<=760;
+function fitScreen(){const m=document.querySelector('main'),cs=getComputedStyle(m),availH=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),availW=Math.min(m.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),innerWidth>760?440:9999),stageMax=Math.max(200,availH-(isPhone()?0:114));document.body.classList.toggle('phone',isPhone());const busy=['playing','paused','upgrade','victory'].includes(state);
  if(!busy){const ratio=stageMax/availW;H=Math.round(Math.max(H_MIN,Math.min(H_MAX,W*ratio)))}
  const w=Math.min(availW,stageMax*W/H);if(c.height!==H)c.height=H;$('#stage').style.aspectRatio=`${W}/${H}`;$('#machine').style.width=Math.floor(w)+'px'}
 addEventListener('resize',fitScreen);window.visualViewport?.addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,200));
@@ -513,7 +530,7 @@ function abilityCard(u){const r=ranks[u.id]||0,n=r+1,capped=u.max<10,badge=u.id=
   row=`<span class="set-row"><i class="set-letter">${set.id}</i><span class="set-name">${set.name}</span><span class="set-dots">${dots}</span><span class="set-msg">${msg}</span></span>`}
  return `<div class="choice-group ${act?'activates':''}"><button class="choice" data-id="${u.id}"><span class="card-top"><em>${uiIcon(u.id)}</em><span class="card-main"><span class="card-title"><b>${u.name}</b>${pips}${badge?`<span class="card-badge">${badge}</span>`:''}</span><small>${u.desc(n)}</small></span></span>${row}</button>${cardMaterials(u.id)}</div>`}
 function chooseUpgrade(id){if(state!=='upgrade'||!offeredChoices.includes(id))return;const old={...ranks};ranks[id]=(ranks[id]||0)+1;if(id==='repair')player.hp=Math.min(3,player.hp+1);timers[id]=0;state='playing';player.inv=Math.max(player.inv,.6);hidePanel();announceSets(old);beep(900,.14);hud()}
-function pause(){if(state==='playing'){state='paused';drag=null;keys.clear();panel('<h2>일시정지</h2><button class="primary" id="resume">계속하기</button><button class="secondary" id="retreat">보상 받고 복귀</button>'+`<details class="set-guide"><summary>내 세트 보기</summary>${setGuide()}</details>`);$('#resume').onclick=resume;$('#retreat').onclick=()=>end(false,true)}else if(state==='paused')resume()}
+function pause(){if(state==='playing'){state='paused';drag=null;keys.clear();panel('<h2>일시정지</h2><button class="primary" id="resume">계속하기</button><button class="secondary" id="retreat">보상 받고 복귀</button>'+`<div class="pause-audio"><button type="button" class="switch" data-pa="music" aria-pressed="${musicEnabled}">음악 ${musicEnabled?'켜짐':'꺼짐'}</button><button type="button" class="switch" data-pa="sound" aria-pressed="${sound}">효과음 ${sound?'켜짐':'꺼짐'}</button></div>`+`<details class="set-guide"><summary>내 세트 보기</summary>${setGuide()}</details>`);$('#resume').onclick=resume;$('#retreat').onclick=()=>end(false,true);document.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.pa).click();const on=b.dataset.pa==='music'?musicEnabled:sound;b.setAttribute('aria-pressed',String(on));b.textContent=(b.dataset.pa==='music'?'음악 ':'효과음 ')+(on?'켜짐':'꺼짐')})}else if(state==='paused')resume()}
 function resume(){unlockAudio();state='playing';hidePanel()}
 function end(win,retreat=false){if(settled)return;settled=true;state=win?'won':'over';drag=null;keys.clear();$('#notice').textContent='';$('#boss').style.display='none';const i=stageInfo(stageNumber),first=win&&!progress.cleared.includes(stageNumber),lines=[];let parts=0,gearReward=null,starHtml='';
 if(win){const base=first?i.reward:Math.floor(i.reward/2);parts+=base;lines.push([first?'첫 클리어':'재도전 클리어','+'+base]);if(first)progress.cleared.push(stageNumber);const got=[true,player.hp>=2,!runDamaged],stars=got.filter(Boolean).length,old=progress.stars[stageNumber]||0;if(stars>old){progress.stars[stageNumber]=stars;parts+=(stars-old)*20;lines.push([`새 별 ${stars-old}개`,'+'+(stars-old)*20])}starHtml=`<div class="star-row">${['클리어','하트 2개 이상','무피격'].map((l,k)=>`<div class="${got[k]?'got':''}"><span>${got[k]?'★':'☆'}</span>${l}</div>`).join('')}</div>`;if(first&&i.boss)gearReward=i.c<=3?awardGear(['rapid','reactive','cooler'][i.c-1]):grantMod();if(chapterStars(i.c)===15&&!progress.chapterBonus.includes(i.c)){progress.chapterBonus.push(i.c);progress.freeBoxes++;lines.push(['챕터 별 15개 달성','무료 상자 +1'])}if(first)selectedStage=Math.min(STAGE_COUNT,currentStage())}
