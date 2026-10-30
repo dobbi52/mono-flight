@@ -159,6 +159,10 @@ h1,#machine>header,#machine>header *,.bottom,#notice,#boss span,#set-status,#rev
 #health{display:flex;align-items:center;gap:6px;font-size:0!important}#health svg{display:block;fill:#fff;shape-rendering:crispEdges}#health .heart{width:21px;height:18px}#health .empty{fill:#6a6a6a}#health .shield-pip{width:15px;height:15px;margin-left:2px;fill:#bdbdbd}
 #health .breaking{animation:heart-break .55s steps(6) both}
 @keyframes heart-break{0%{fill:#fff;scale:1.5}30%{translate:-3px 0}50%{translate:3px 0;fill:#fff}100%{translate:0 0;scale:1;fill:#6a6a6a}}
+/* Help rows behave like whole buttons: the full box is clickable, no text cursor or selection. */
+#machine .set-guide{padding:0}#machine .set-guide>summary{padding:14px 12px;min-height:48px}
+summary,button{cursor:pointer}
+#machine,.help-dialog{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 </style><!--
 MONO FLIGHT — Claude handoff / 2026-10-30
 Single HTML plus fonts/ (Galmuri11 regular/bold, OFL). No libraries, images, network or build step.
