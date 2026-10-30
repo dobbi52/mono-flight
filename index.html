@@ -458,7 +458,7 @@ try{progress=readSave(JSON.parse(localStorage.getItem('mono-flight-progress-v1')
 function saveProgress(keepTime){if(!keepTime)progress.updatedAt=Date.now();try{localStorage.setItem('mono-flight-progress-v1',JSON.stringify(progress));saveWarning=false}catch{saveWarning=true}if(cloud?.user&&cloud.ready)cloudPush()}
 /* Cloud save: Google login via Firebase Auth, one Firestore doc per user at saves/{uid} = {save: JSON string, at: updatedAt}.
    mono-flight-sync in localStorage remembers {uid, at} of the last successful sync to tell which side changed. */
-const FB_CONFIG=null;
+const FB_CONFIG={apiKey:"AIzaSyC3w8cN6KqCVNv_SEngFNlomFD0TY4R06Y",authDomain:"mono-flight-6b049.firebaseapp.com",projectId:"mono-flight-6b049",storageBucket:"mono-flight-6b049.firebasestorage.app",messagingSenderId:"657401439668",appId:"1:657401439668:web:bd25b79a8dc6bf4302fee1"};
 var cloud={user:null,api:null,ready:false,status:'',pushT:null};
 const syncMeta=()=>{try{return JSON.parse(localStorage.getItem('mono-flight-sync')||'{}')}catch{return {}}};
 const saveSummary=p=>`클리어 ${p.cleared.length}/${STAGE_COUNT} · 별 ${Object.values(p.stars).reduce((a,b)=>a+b,0)} · 부품 ${p.parts}`;
