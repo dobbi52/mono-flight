@@ -8,3 +8,7 @@
 - 진행 상황은 브라우저에 저장 (`mono-flight-progress-v1`)
 
 조작: 드래그 또는 방향키/WASD 이동, 자동 사격, ESC 일시정지
+
+## 글꼴
+
+[갈무리(Galmuri)](https://galmuri.quiple.dev) © Lee Minseo, SIL Open Font License 1.1 — `fonts/OFL-Galmuri.md`
