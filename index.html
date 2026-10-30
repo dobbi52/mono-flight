@@ -184,6 +184,23 @@ summary,button{cursor:pointer}
 @keyframes set-flash{0%{opacity:.85}100%{opacity:0}}
 .choice-group .choice em{width:44px!important;height:48px!important}.choice-group .choice em .ui-icon.pix{width:36px;height:36px}
 @media(max-width:760px){.choice-group .choice em{width:42px!important;height:46px!important}}
+/* Ability card v2: ability on top, its set underneath. */
+.choice-group .choice{display:block!important;padding:0!important;min-height:0!important;text-align:left}
+.card-top{display:flex;align-items:center;gap:12px;padding:14px 12px 13px}
+.card-main{flex:1;min-width:0}.card-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-title b{font-size:18px!important;line-height:1.2}
+.lv-pips{display:inline-flex;gap:3px;margin-left:auto}.lv-pips i{width:10px;height:10px;border:2px solid #111}.lv-pips .on{background:#111}.lv-pips .new{background:#111;outline:2px solid #111;outline-offset:1px;animation:pip-new .9s steps(2) infinite}
+.card-badge{font-family:var(--pixel);font-size:12px;line-height:1;background:#111;color:#fff;padding:3px 5px}
+.card-main small{display:block;font-size:14px!important;line-height:1.5!important;color:#222;margin-top:6px!important}
+.set-row{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:5px 8px;padding:9px 54px 10px 12px;border-top:1px dashed #aaa;background:#f1f1f1;color:#111}
+.set-letter{display:grid;place-items:center;width:22px;height:22px;background:#111;color:#fff;font-family:var(--pixel);font-size:12px;font-style:normal;font-weight:700}
+.set-name{font-family:var(--pixel);font-size:12px;font-weight:700}
+.set-dots{display:inline-flex;gap:4px}.set-dots i{width:9px;height:9px;border:2px solid currentColor;border-radius:50%}.set-dots .on{background:currentColor}.set-dots .new{background:currentColor;box-shadow:0 0 0 2px #f1f1f1,0 0 0 4px currentColor}
+.set-msg{grid-column:1/-1;font-size:12px;line-height:1.4;color:#444}
+.activates .set-row{background:#111;color:#fff;border-top:1px solid #111}.activates .set-letter{background:#fff;color:#111}.activates .set-msg{color:#fff;font-family:var(--pixel);font-size:12px;font-weight:700}.activates .set-dots .new{box-shadow:0 0 0 2px #111,0 0 0 4px #fff}
+.activates{border-color:#111!important}
+.choice-group .card-recipe{right:8px!important;bottom:10px!important}
+@keyframes pip-new{50%{background:transparent}}
 </style><!--
 MONO FLIGHT — Claude handoff / 2026-10-30
 Single HTML plus fonts/ (Galmuri11 regular/bold, OFL). No libraries, images, network or build step.
@@ -422,7 +439,13 @@ const upgrades=[
 let offeredChoices=[];
 let impactSoundAt=-1,explosionSoundAt=-1,victoryClock=0,victoryBurst=0;
 const reducedImpact=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-function levelUp(free=false){if(!free){xp-=need;level++;need=Math.floor(10+level*3.2)}state='upgrade';drag=null;keys.clear();let pool=upgrades.filter(u=>(ranks[u.id]||0)<u.max&&(u.id!=='repair'||player.hp<3));for(let i=pool.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}if(!pool.length){state='playing';if(!free)notice('LEVEL UP · 모든 능력 최대',1.5);hud();return}offeredChoices=pool.slice(0,3).map(u=>u.id);panel(`<h2>${free?'출격 지원':'레벨 업!'}</h2><p>능력 하나를 선택하세요</p>`+pool.slice(0,3).map(u=>`<div class="choice-group"><button class="choice" data-id="${u.id}"><em>${uiIcon(u.id)}</em><span class="choice-content"><span class="rank">${ranks[u.id]?'Lv.'+ranks[u.id]+' → '+(ranks[u.id]+1):'Lv.1'}</span><b>${u.name}</b><small>${u.desc((ranks[u.id]||0)+1)}</small><span class="set-hints">${setCardHints(u.id)}</span></span></button>${cardMaterials(u.id)}</div>`).join('')+``);document.querySelectorAll('.choice').forEach(b=>b.onclick=()=>chooseUpgrade(b.dataset.id));beep(1000,.2);hud()}
+function levelUp(free=false){if(!free){xp-=need;level++;need=Math.floor(10+level*3.2)}state='upgrade';drag=null;keys.clear();let pool=upgrades.filter(u=>(ranks[u.id]||0)<u.max&&(u.id!=='repair'||player.hp<3));for(let i=pool.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}if(!pool.length){state='playing';if(!free)notice('LEVEL UP · 모든 능력 최대',1.5);hud();return}offeredChoices=pool.slice(0,3).map(u=>u.id);panel(`<h2>${free?'출격 지원':'레벨 업!'}</h2><p>능력 하나를 선택하세요</p>`+pool.slice(0,3).map(abilityCard).join('')+``);document.querySelectorAll('.choice').forEach(b=>b.onclick=()=>chooseUpgrade(b.dataset.id));beep(1000,.2);hud()}
+function abilityCard(u){const r=ranks[u.id]||0,n=r+1,capped=u.max<10,badge=u.id==='repair'?'회복':r===0?'NEW':capped&&n===u.max?'MAX':'',pips=capped?`<span class="lv-pips" aria-label="${n}단계">${Array.from({length:u.max},(_,k)=>`<i class="${k<r?'on':k===r?'new':''}"></i>`).join('')}</span>`:'';
+ const set=SETS.find(q=>q.items.includes(u.id));let row='',act=false;
+ if(set){const next={...ranks,[u.id]:n},tb=setTier(set.id),ta=setTier(set.id,next),dots=set.items.map(id=>`<i class="${id===u.id&&!ranks[id]?'new':next[id]?'on':''}" title="${set.names[set.items.indexOf(id)]}"></i>`).join(''),missing=set.items.slice(0,2).filter(id=>!next[id]).map(id=>set.names[set.items.indexOf(id)]);
+  let msg;if(ta>tb){act=true;msg=ta===3?'선택하면 세트 완성!':'선택하면 2개 조합 발동!'}else if(ta===3)msg='세트 완성됨';else if(ta===2)msg=`발동 중 · ${set.names[2]}까지 모으면 완성`;else msg=`${missing.join(' + ')} 있으면 2개 조합 발동`;
+  row=`<span class="set-row"><i class="set-letter">${set.id}</i><span class="set-name">${set.name}</span><span class="set-dots">${dots}</span><span class="set-msg">${msg}</span></span>`}
+ return `<div class="choice-group ${act?'activates':''}"><button class="choice" data-id="${u.id}"><span class="card-top"><em>${uiIcon(u.id)}</em><span class="card-main"><span class="card-title"><b>${u.name}</b>${pips}${badge?`<span class="card-badge">${badge}</span>`:''}</span><small>${u.desc(n)}</small></span></span>${row}</button>${cardMaterials(u.id)}</div>`}
 function chooseUpgrade(id){if(state!=='upgrade'||!offeredChoices.includes(id))return;const old={...ranks};ranks[id]=(ranks[id]||0)+1;if(id==='repair')player.hp=Math.min(3,player.hp+1);timers[id]=0;state='playing';player.inv=Math.max(player.inv,.6);hidePanel();announceSets(old);beep(900,.14);hud()}
 function pause(){if(state==='playing'){state='paused';drag=null;keys.clear();panel('<h2>일시정지</h2><button class="primary" id="resume">계속하기</button><button class="secondary" id="retreat">보상 받고 복귀</button>'+`<details class="set-guide"><summary>내 세트 보기</summary>${setGuide()}</details>`);$('#resume').onclick=resume;$('#retreat').onclick=()=>end(false,true)}else if(state==='paused')resume()}
 function resume(){unlockAudio();state='playing';hidePanel()}
