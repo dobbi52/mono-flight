@@ -869,7 +869,7 @@ function satPos(i){const a=-t*2.6+i*Math.PI*2/ranks.satellite,r=ranks.ultC?32:24
 let satCD=[];
 function guardBullets(dt){const guards=[];for(let i=0;i<(ranks.satellite||0);i++){satCD[i]=Math.max(0,(satCD[i]||0)-dt);if(!satCD[i])guards.push([satPos(i),8,i])}if(setTier('C')===3)for(let i=0;i<(ranks.drone||0);i++)guards.push([dronePosition(i),10,-1]);if(!guards.length)return;bullets=bullets.filter(b=>{for(const [q,r,si] of guards)if((si<0||!satCD[si])&&Math.abs(b.x-q.x)<r&&Math.abs(b.y-q.y)<r){if(si>=0)satCD[si]=1.5;particles.push({x:b.x,y:b.y,vx:rand(-40,40),vy:rand(-40,40),life:.18,size:1});return false}return true})}
 function dronePosition(i){let a=t*3+i*Math.PI*2/ranks.drone,r=ranks.ultC?42:30;return{x:player.x+Math.cos(a)*r,y:player.y+Math.sin(a)*r}}
-const APP_VERSION='v0.10.1 · 10.31 14:45';
+const APP_VERSION='v0.10.2 · 10.31 14:51';
 let introT=0,introFoes=[],introBul=[],introPlane={y:0,vy:0};
 function showIntro(){state='intro';const o=$('#overlay'),n=progress.mono?0:earnedColors(),map=[0,1,2,3,4,5,0,1,2,3],letters=(w,off)=>[...w].map((ch,k)=>`<span${map[k+off]<n?` style="color:${COLOR_STEPS[map[k+off]].hex}"`:''}>${ch}</span>`).join('');o.hidden=false;o.className='intro';o.innerHTML=`<div class="intro-wrap"><div class="intro-head"><div class="intro-logo"><div>${letters('MONO',0)}</div><div>${letters('FLIGHT',4)}</div></div><small>모노 플라이트</small><p class="intro-tag">흑백 세상에 색을 되찾는 비행</p></div><p class="intro-touch">화면을 터치하세요</p><small class="app-ver">${APP_VERSION}</small></div>`;o.addEventListener('click',leaveIntro,{once:true});hud()}
 function leaveIntro(){if(state!=='intro')return;unlockAudio();state='introOut';syncMusic();titleFanfare();introPlane.y=H*.68+Math.sin(introT*2)*4;introPlane.vy=-80;beep(260,.45,'sawtooth',.03);buzz(30);$('#overlay').classList.add('leaving');setTimeout(()=>{hangar();const ov=$('#overlay');ov.classList.add('from-intro');setTimeout(()=>ov.classList.remove('from-intro'),700)},620)}
@@ -903,7 +903,7 @@ function nightPass(){const N=W*H;if(!NL||NL.length!==N)NL=new Float32Array(N);NL
   const lum=(d[p]*.3+d[p+1]*.59+d[p+2]*.11)/255,v=lum*Math.min(1.25,I+amb)+.12*Math.min(1,I*1.6),on=v>th?255:0;d[p]=d[p+1]=d[p+2]=on}
  g.putImageData(img,0,0);
  for(const b of bullets){g.fillStyle='#fff';drawEB(b,1);g.fillStyle='#ff3038';drawEB(b)}}
-const nightTest=/[?&]night\b/.test(location.search);
+let nightTest=/[?&]night\b/.test(location.search);try{if(nightTest)sessionStorage.setItem('mf-night','1');else nightTest=sessionStorage.getItem('mf-night')==='1'}catch{}
 function startNightTest(){start(selectedStage);if(state!=='playing')return;cfg.night=true;nightLights=[];notice('밤 시험 비행 · '+cfg.label,2.5)}
 function drawEB(b,o=0){const x=Math.round(b.x),y=Math.round(b.y);if(!b.missile){g.fillRect(x-2-o,y-2-o,4+o*2,4+o*2);return}g.save();g.translate(x,y);g.rotate(Math.atan2(b.vy,b.vx)-Math.PI/2);g.fillRect(-2-o,-2-o,4+o*2,7+o*2);g.fillRect(-1-o,-7-o,2+o*2,2+o*2);g.restore()}
 function draw(){g.fillStyle=PAL.sky;g.fillRect(0,0,W,H);g.save();if(shake>0&&!reducedImpact())g.translate(Math.round(rand(-2,2)),Math.round(rand(-2,2)));g.fillStyle=PAL.cloud||(cfg?cfg.ch.tone:'#202020');for(let q of clouds){let x=Math.round(q.x),y=Math.round(q.y),s=Math.round(q.s*5);g.fillRect(x,y,s*5,s*2);g.fillRect(x+s,y-s,s*3,s);g.fillRect(x+s*2,y-s*2,s,s)}
@@ -941,7 +941,7 @@ c.addEventListener('pointerdown',e=>{if(state!=='playing')return;c.setPointerCap
 // iOS only starts Web Audio inside a tap that ends (touchend/click), so unlock on those.
 ['touchend','click','keydown'].forEach(ev=>addEventListener(ev,()=>{try{unlockAudio();if(audio&&audio.state!=='running')audio.resume()}catch{}},{passive:true}));
 // Home-screen apps keep an old copy; compare with the server and reload once when the game changed.
-(async()=>{try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch(location.pathname+'?fresh='+Date.now(),{cache:'no-store'});if(!r.ok)return;const html=await r.text(),pick=h=>((h.match(/<style>([\s\S]*?)<\/style>/)||[])[1]||'')+[...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join(''),cur=document.querySelector('style').textContent+[...document.scripts].map(x=>x.textContent).join('');if(pick(html)===cur)return;const k='mf-reload';if(sessionStorage.getItem(k)===String(html.length))return;sessionStorage.setItem(k,String(html.length));if(state==='intro')location.replace(location.pathname+'?v='+Date.now())}catch{}})();
+(async()=>{try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch(location.pathname+'?fresh='+Date.now(),{cache:'no-store'});if(!r.ok)return;const html=await r.text(),pick=h=>((h.match(/<style>([\s\S]*?)<\/style>/)||[])[1]||'')+[...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join(''),cur=document.querySelector('style').textContent+[...document.scripts].map(x=>x.textContent).join('');if(pick(html)===cur)return;const k='mf-reload';if(sessionStorage.getItem(k)===String(html.length))return;sessionStorage.setItem(k,String(html.length));if(state==='intro')location.replace(location.pathname+'?v='+Date.now()+(/[?&]night\b/.test(location.search)?'&night':''))}catch{}})();
 'use strict';
 // Feedback is visual only: it never delays an action or intercepts input.
 document.addEventListener('click',event=>{
