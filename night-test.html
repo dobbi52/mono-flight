@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>MONO FLIGHT 2부 밤 시험</title>
+<style>
+@font-face{font-family:'Galmuri11';src:url(fonts/Galmuri11.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Galmuri11';src:url(fonts/Galmuri11-Bold.woff2) format('woff2');font-weight:700;font-display:swap}
+html,body{margin:0;height:100%;background:#000;color:#fff;font-family:'Galmuri11',system-ui,sans-serif;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+#wrap{display:flex;flex-direction:column;align-items:center;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);box-sizing:border-box}
+#top{width:100%;max-width:432px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;box-sizing:border-box;font-size:13px}
+#top b{font-size:15px;letter-spacing:1px}
+#c{flex:1;min-height:0;aspect-ratio:288/512;max-width:100%;image-rendering:pixelated;image-rendering:crisp-edges;border-top:1px solid #333;border-bottom:1px solid #333}
+#ui{width:100%;max-width:432px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:6px;padding:8px 12px 10px;box-sizing:border-box}
+button{font-family:inherit;font-size:14px;font-weight:700;padding:10px 4px;background:#000;color:#fff;border:2px solid #fff;border-radius:0}
+button:active{background:#fff;color:#000}
+#lamps{display:flex;gap:4px;align-items:center}
+#lamps i{width:10px;height:10px;border:1px solid #fff;display:inline-block}
+#lamps i.on{background:#fff}
+#hint{width:100%;max-width:432px;text-align:center;font-size:11px;color:#888;padding:0 12px 6px;box-sizing:border-box;word-break:keep-all}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="top"><b>2부 · 밤의 하늘</b><span id="lamps"></span></div>
+  <canvas id="c" width="288" height="512"></canvas>
+  <div id="ui"><button id="lamp">등대 켜기</button><button id="flare">조명탄</button><button id="rev">반전</button></div>
+  <div id="hint">화면을 끌어 기체를 움직여 보세요 · 등대를 켤 때마다 밤이 옅어져요 · 시험 화면이라 맞아도 괜찮아요</div>
+</div>
+<script>
+const W=288,H=512,c=document.getElementById('c'),g=c.getContext('2d');
+// offscreen world (grayscale luminance) and output buffer
+const wc=document.createElement('canvas');wc.width=W;wc.height=H;const wg=wc.getContext('2d',{willReadFrequently:true});
+const out=g.createImageData(W,H),O=out.data;
+const B4=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v=>(v+.5)/16);
+const plane=['000010000','000111000','000111000','001111100','011111110','111111111','000111000','001101100','001000100'];
+const foe=['001000100','001101100','000111000','111111111','011111110','001111100','000111000','000010000'];
+const lighthouse=['00100','01110','01110','11111','01010','01110','01010','01110','11111'];
+function sprite(ctx,p,x,y,s,col){ctx.fillStyle=col;for(let j=0;j<p.length;j++)for(let i=0;i<p[j].length;i++)if(p[j][i]==='1')ctx.fillRect(Math.round(x+(i-p[j].length/2)*s),Math.round(y+(j-p.length/2)*s),s,s)}
+const rand=(a,b)=>a+Math.random()*(b-a);
+
+let lit=0,scroll=0,t=0,player={x:144,y:420},enemies=[],bullets=[],shots=[],booms=[],flare=null,revT=0,spawnT=1,shotT=0;
+// sea texture: wavy contour lines (like dotted coastlines)
+const waves=[];for(let i=0;i<46;i++)waves.push({y:rand(0,1100),x:rand(-40,288),w:rand(40,120),a:rand(2,5),f:rand(.05,.12)});
+const isles=[];for(let i=0;i<5;i++)isles.push({x:rand(30,258),y:rand(0,1100),r:rand(14,26)});
+
+function drawWorld(){
+  wg.fillStyle='#000';wg.fillRect(0,0,W,H); // sea base comes only from real lights (see render)
+  wg.fillStyle='rgb(235,235,235)';
+  for(const w of waves){const y=((w.y+scroll)%1100)-60;for(let k=0;k<w.w;k+=2){const yy=y+Math.sin((w.x+k)*w.f)*w.a;wg.fillRect(Math.round(w.x+k),Math.round(yy),1,1)}}
+  for(const s of isles){const y=((s.y+scroll*1.0)%1100)-60;wg.fillStyle='rgb(150,150,150)';wg.beginPath();wg.ellipse(s.x,y,s.r,s.r*.7,0,0,7);wg.fill();wg.fillStyle='rgb(240,240,240)';for(let a=0;a<6.28;a+=.12)wg.fillRect(Math.round(s.x+Math.cos(a)*s.r),Math.round(y+Math.sin(a)*s.r*.7),1,1)}
+  // lighthouses at the edges (lit ones drawn bright)
+  for(let i=0;i<4;i++){const lx=i%2?268:20,ly=110+Math.floor(i/2)*220;sprite(wg,lighthouse,lx,ly,2,i<lit?'#fff':'#777')}
+  for(const e of enemies)sprite(wg,foe,e.x,e.y,2,'#fff');
+  sprite(wg,plane,player.x,player.y,2,'#fff');
+  wg.fillStyle='#fff';for(const s of shots)wg.fillRect(Math.round(s.x)-1,Math.round(s.y)-3,2,6);
+}
+function lights(){
+  const L=[{x:player.x,y:player.y,r:78,s:1.1}];
+  for(const b of booms)L.push({x:b.x,y:b.y,r:60*(1-b.t/b.d*.4),s:1.3*(1-b.t/b.d)});
+  for(const b of bullets)L.push({x:b.x,y:b.y,r:16,s:.55});
+  for(const e of enemies)L.push({x:e.x,y:e.y,r:15,s:.75});
+  if(flare)L.push({x:flare.x,y:flare.y,r:150,s:1.4*Math.min(1,(flare.d-flare.t)/1)});
+  return L;
+}
+function beams(){const B=[];for(let i=0;i<lit;i++){const lx=i%2?268:20,ly=110+Math.floor(i/2)*220,base=i%2?Math.PI:0;B.push({x:lx,y:ly-8,a:base+(i%2?-1:1)*(.9+Math.sin(t*.6+i*1.7)*.7)})}return B}
+function render(){
+  drawWorld();
+  const src=wg.getImageData(0,0,W,H).data,L=lights(),BM=beams(),amb=.05+lit*.07,full=revT>0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const p=(y*W+x)*4;let I=0;
+    if(full)I=1.2;else{
+      for(let k=0;k<L.length;k++){const l=L[k],dx=x-l.x,dy=y-l.y,d2=dx*dx+dy*dy;if(d2<l.r*l.r){const f=1-Math.sqrt(d2)/l.r;I+=l.s*f*f}}
+      for(let k=0;k<BM.length;k++){const b=BM[k],dx=x-b.x,dy=y-b.y;let da=Math.atan2(dy,dx)-b.a;da=Math.atan2(Math.sin(da),Math.cos(da));if(da<.16&&da>-.16){const d=Math.sqrt(dx*dx+dy*dy);if(d<420)I+=.45*(1-d/420)*(1-Math.abs(da)/.16)}}
+    }
+    const v=src[p]/255*Math.min(1.25,I+amb)+.2*Math.min(1,I),on=v>B4[(y&3)*4+(x&3)]?255:0;O[p]=O[p+1]=O[p+2]=on;O[p+3]=255;
+  }
+  g.putImageData(out,0,0);
+  // enemy bullets glow on top: always readable
+  for(const b of bullets){g.fillStyle='#000';g.fillRect(Math.round(b.x)-3,Math.round(b.y)-3,6,6);g.fillStyle='#fff';g.fillRect(Math.round(b.x)-2,Math.round(b.y)-2,4,4);g.fillStyle='#ff3038';g.fillRect(Math.round(b.x)-1,Math.round(b.y)-1,2,2)}
+  if(revT>0){g.globalAlpha=Math.min(1,revT/.15)*.5;g.fillStyle='#fff';g.fillRect(0,0,W,H);g.globalAlpha=1}
+}
+function update(dt){
+  t+=dt;scroll+=dt*28;revT=Math.max(0,revT-dt);
+  spawnT-=dt;if(spawnT<=0){spawnT=rand(.7,1.4);enemies.push({x:rand(20,268),y:-12,vx:rand(-15,15),fire:rand(.8,1.8),hp:3})}
+  shotT-=dt;if(shotT<=0){shotT=.18;shots.push({x:player.x,y:player.y-10})}
+  for(const s of shots)s.y-=300*dt;
+  for(const e of enemies){e.y+=34*dt;e.x+=e.vx*dt;e.fire-=dt;if(e.fire<=0&&e.y>10&&e.y<player.y-40){e.fire=rand(1.6,2.6);const a=Math.atan2(player.y-e.y,player.x-e.x);bullets.push({x:e.x,y:e.y+6,vx:Math.cos(a)*62,vy:Math.sin(a)*62})}
+    for(const s of shots)if(!s.dead&&Math.abs(s.x-e.x)<9&&Math.abs(s.y-e.y)<9){s.dead=true;if(--e.hp<=0){e.dead=true;booms.push({x:e.x,y:e.y,t:0,d:.7})}}}
+  for(const b of bullets){b.x+=b.vx*dt;b.y+=b.vy*dt}
+  for(const b of booms)b.t+=dt;
+  if(flare){flare.t+=dt;flare.y-=20*dt;if(flare.t>flare.d)flare=null}
+  enemies=enemies.filter(e=>!e.dead&&e.y<H+20);shots=shots.filter(s=>!s.dead&&s.y>-10);bullets=bullets.filter(b=>b.y<H+10&&b.y>-10&&b.x>-10&&b.x<W+10);booms=booms.filter(b=>b.t<b.d);
+}
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);render();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+// input: drag anywhere on canvas
+let drag=null;
+c.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,px:player.x,py:player.y};c.setPointerCapture(e.pointerId)});
+c.addEventListener('pointermove',e=>{if(!drag)return;const r=c.getBoundingClientRect(),k=W/r.width;player.x=Math.max(10,Math.min(W-10,drag.px+(e.clientX-drag.x)*k));player.y=Math.max(40,Math.min(H-14,drag.py+(e.clientY-drag.y)*k))});
+c.addEventListener('pointerup',()=>drag=null);c.addEventListener('pointercancel',()=>drag=null);
+const lampsEl=document.getElementById('lamps'),lampBtn=document.getElementById('lamp');
+function showLamps(){lampsEl.innerHTML='등대 '+[0,1,2,3].map(i=>`<i class="${i<lit?'on':''}"></i>`).join('');lampBtn.textContent=lit<4?`등대 켜기 ${lit}/4`:'다시 밤으로'}
+lampBtn.onclick=()=>{lit=lit<4?lit+1:0;showLamps()};
+document.getElementById('flare').onclick=()=>{flare={x:rand(60,228),y:200,t:0,d:3}};
+document.getElementById('rev').onclick=()=>{revT=.45;for(const b of bullets)booms.push({x:b.x,y:b.y,t:0,d:.35});bullets=[]};
+showLamps();
+</script>
+</body>
+</html>
