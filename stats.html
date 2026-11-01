@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MONO FLIGHT 통계</title>
+<style>
+@font-face{font-family:G;src:url(fonts/Galmuri11-Bold.woff2)}
+:root{--bg:#e7e7e7;--ink:#111;--mut:#666;--card:#fff;--line:#bbb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;word-break:keep-all}
+header{background:#111;color:#fff;padding:16px}
+header h1{margin:0;font-family:G;font-size:22px}
+header p{margin:4px 0 0;font-size:12px;color:#aaa}
+main{max-width:760px;margin:0 auto;padding:16px}
+button{font:inherit;font-size:15px;padding:12px 18px;background:#111;color:#fff;border:2px solid #111;cursor:pointer}
+button.sub{background:#fff;color:#111}
+.msg{padding:14px;background:#fff;border:2px solid #111;margin:12px 0;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.card{background:var(--card);border:2px solid #111;padding:12px}
+.card small{display:block;font-size:12px;color:var(--mut)}
+.card b{display:block;font-family:G;font-size:30px;margin-top:4px}
+.card span{font-size:12px;color:var(--mut)}
+h2{font-family:G;font-size:17px;margin:24px 0 8px;padding:8px 10px;background:#333;color:#fff}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:96px 1fr 70px;align-items:center;gap:8px;font-size:13px}
+.bar i{display:block;height:14px;background:#111}
+.bar .tr{background:#ddd;height:14px}
+.bar em{font-style:normal;text-align:right}
+.note{font-size:12px;color:var(--mut);line-height:1.6;margin:6px 0}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;white-space:nowrap}
+th{background:#f3f3f3}
+.tw{overflow-x:auto;border:2px solid #111}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header><h1>MONO FLIGHT 통계</h1><p>기기마다 이름 없는 번호로 세어요 · 관리자만 볼 수 있어요</p></header>
+<main>
+<div class="top"><button id="login">구글 로그인</button><button id="reload" class="sub" hidden>새로고침</button><span id="who" class="note"></span></div>
+<div id="out"><div class="msg">게임을 만든 구글 계정으로 로그인하면 통계가 보여요.</div></div>
+</main>
+<script type="module">
+const FB_CONFIG={apiKey:"AIzaSyC3w8cN6KqCVNv_SEngFNlomFD0TY4R06Y",authDomain:"mono-flight-6b049.firebaseapp.com",projectId:"mono-flight-6b049",storageBucket:"mono-flight-6b049.firebasestorage.app",messagingSenderId:"657401439668",appId:"1:657401439668:web:bd25b79a8dc6bf4302fee1"};
+const B='https://www.gstatic.com/firebasejs/10.12.2/';
+const [a,au,fs]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-auth.js'),import(B+'firebase-firestore.js')]);
+const app=a.initializeApp(FB_CONFIG),auth=au.getAuth(app),db=fs.getFirestore(app);
+const $=s=>document.querySelector(s),out=$('#out');
+const esc=t=>String(t??'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+const lab=n=>n?`${Math.ceil(n/5)}-${(n-1)%5+1}`:'-';
+const ago=t=>{const m=(Date.now()-t)/6e4;return m<60?Math.round(m)+'분 전':m<1440?Math.round(m/60)+'시간 전':Math.round(m/1440)+'일 전'};
+$('#login').onclick=async()=>{const pv=new au.GoogleAuthProvider();pv.setCustomParameters({prompt:'select_account'});try{await au.signInWithPopup(auth,pv)}catch(e){if(/popup/.test(e.code||''))au.signInWithRedirect(auth,pv);else out.innerHTML=`<div class="msg">로그인 실패: ${esc(e.code||e.message)}</div>`}};
+$('#reload').onclick=load;
+au.getRedirectResult(auth).catch(()=>{});
+au.onAuthStateChanged(auth,u=>{$('#who').textContent=u?u.email:'';$('#login').hidden=!!u;$('#reload').hidden=!u;if(u)load()});
+async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>';let docs;
+ try{docs=(await fs.getDocs(fs.collection(db,'players'))).docs.map(d=>d.data())}
+ catch(e){out.innerHTML=`<div class="msg">읽을 수 없어요 (${esc(e.code)}). Firestore 규칙의 players 부분에 이 계정 이메일이 맞게 들어갔는지 확인해 주세요.</div>`;return}
+ const now=Date.now(),D=864e5,n=docs.length,d1=docs.filter(p=>now-p.last<D).length,d7=docs.filter(p=>now-p.last<7*D).length,new1=docs.filter(p=>now-p.first<D).length,app=docs.filter(p=>/앱/.test(p.dev||'')).length,played=docs.filter(p=>(p.plays|0)>0).length;
+ const card=(t,v,s='')=>`<div class="card"><small>${t}</small><b>${v}</b><span>${s}</span></div>`;
+ const devs={};docs.forEach(p=>{const k=(p.dev||'?').replace('·앱','');devs[k]=(devs[k]||0)+1});
+ const maxBar=(rows)=>Math.max(1,...rows.map(r=>r[1]));
+ const bars=rows=>{const m=maxBar(rows);return `<div class="bars">${rows.map(([k,v,t])=>`<div class="bar"><span>${k}</span><div class="tr"><i style="width:${v/m*100}%"></i></div><em>${t??v}</em></div>`).join('')}</div>`};
+ const funnel=[['게임을 연 기기',n],['한 판 이상 출격',played],...Array.from({length:10},(_,i)=>[`${i+1}챕터 보스`,docs.filter(p=>(p.reach|0)>=(i+1)*5).length])].map(([k,v])=>[k,v,`${v}명 · ${n?Math.round(v/n*100):0}%`]);
+ const stuck={};docs.filter(p=>(p.plays|0)>0).forEach(p=>{const k=lab(Math.min(50,(p.reach|0)+1));stuck[k]=(stuck[k]||0)+1});
+ const stuckRows=Object.entries(stuck).sort((x,y)=>y[1]-x[1]).slice(0,10);
+ const recent=docs.slice().sort((x,y)=>y.last-x.last).slice(0,60);
+ out.innerHTML=`<div class="grid">${card('전체 기기',n,'링크로 들어와 게임을 연 기기')}${card('오늘 플레이',d1,'최근 24시간')}${card('최근 7일',d7)}${card('오늘 처음 온 기기',new1)}${card('앱으로 설치',app,n?Math.round(app/n*100)+'%':'')}${card('평균 출격',n?(docs.reduce((s,p)=>s+(p.plays|0),0)/n).toFixed(1)+'판':'-')}</div>
+ <h2>어디까지 갔나</h2>${bars(funnel)}<p class="note">'3챕터 보스'는 3-5를 깬 기기 수예요. 줄이 갑자기 짧아지는 곳이 많이 그만두는 곳이에요.</p>
+ <h2>지금 머물러 있는 스테이지</h2>${bars(stuckRows)}<p class="note">한 판 이상 한 기기가 다음에 깨야 할 스테이지예요. 한 곳에 몰려 있으면 그 스테이지가 어렵다는 뜻일 수 있어요.</p>
+ <h2>기기 종류</h2>${bars(Object.entries(devs).sort((x,y)=>y[1]-x[1]))}
+ <h2>최근 플레이한 기기 (최대 60)</h2><div class="tw"><table><tr><th>마지막</th><th>진행</th><th>기체</th><th>실행</th><th>출격</th><th>무한</th><th>기기</th><th>버전</th></tr>${recent.map(p=>`<tr><td>${ago(p.last)}</td><td>${lab(p.reach|0)}</td><td>Lv.${p.ship|0}</td><td>${p.opens|0}</td><td>${p.plays|0}</td><td>${p.best?'W'+p.best:'-'}</td><td>${esc(p.dev)}</td><td>${esc(p.ver)}</td></tr>`).join('')}</table></div>
+ <p class="note">의견과 별점은 Firebase 콘솔의 feedback에서 볼 수 있어요: <a href="https://console.firebase.google.com/project/mono-flight-6b049/firestore/data">Firestore 데이터</a></p>`}
+</script>
+</body>
+</html>
