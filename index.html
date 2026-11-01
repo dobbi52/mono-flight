@@ -233,12 +233,14 @@ body.full-color{--base-bg:#ebe7de}
 #overlay.scrollable{scrollbar-gutter:auto}.map-field{height:176px}.chapter-map{margin:10px 0 8px}.hangar-tabs{padding:6px 0 8px}.stage-brief{padding:10px 12px}.launch-bar{padding-top:10px}
 /* Stage card main screen. */
 .stage-card2{margin:10px 0 0;background:#111;color:#fff;border:2px solid #111}.stage-card2.boss{border-color:#c0303a;box-shadow:inset 0 0 0 2px #c0303a}
-.stage-card2.boss .sc-field{background-color:#1c0709!important;background-image:repeating-linear-gradient(-45deg,#c0303a 0 6px,#140405 6px 12px),repeating-linear-gradient(-45deg,#c0303a 0 6px,#140405 6px 12px),radial-gradient(#ff5a5a22 1px,transparent 1px);background-size:100% 7px,100% 7px,12px 12px;background-position:top,bottom,0 0;background-repeat:no-repeat,no-repeat,repeat}
+.stage-card2.boss .sc-field{background-color:#1c0709!important;background-image:radial-gradient(#ff5a5a22 1px,transparent 1px)}
+.stage-card2.boss .sc-field::before,.stage-card2.boss .sc-field::after{content:'';position:absolute;left:0;right:0;height:7px;z-index:1;pointer-events:none;background:repeating-linear-gradient(-45deg,#c0303a 0 6px,#140405 6px 12px)}
+.stage-card2.boss .sc-field::before{top:0}.stage-card2.boss .sc-field::after{bottom:0}
 .stage-card2.boss .sc-art{animation:sc-boss-breathe 2.4s ease-in-out infinite}
 .stage-card2.boss .sc-art .foe-art{scale:1.45;filter:drop-shadow(0 0 10px #ff3a3a55) drop-shadow(0 6px 0 #0008)}
 @keyframes sc-boss-breathe{0%,100%{scale:1;translate:0 0}50%{scale:1.05;translate:0 -3px}}
 .stage-card2.boss .sc-head b,.stage-card2.boss .sc-info b{color:#ff6a6a}
-.stage-card2.boss .sc-boss{background:#c0303a;color:#fff;top:14px;animation:sc-boss-blink 1s steps(2) infinite}
+.stage-card2.boss .sc-boss{background:#c0303a;color:#fff;top:14px;z-index:3;animation:sc-boss-blink 1s steps(1) infinite}
 @keyframes sc-boss-blink{50%{background:#fff;color:#c0303a}}
 .launch-bar .primary.boss-launch{background:#a3222c;border-color:#a3222c;color:#fff}
 .launch-bar .primary.boss-launch:active{background:#fff;color:#a3222c}
@@ -1148,7 +1150,7 @@ function satPos(i){const a=-t*2.6+i*Math.PI*2/ranks.satellite,r=ranks.ultC?32:24
 let satCD=[];
 function guardBullets(dt){const guards=[];for(let i=0;i<(ranks.satellite||0);i++){satCD[i]=Math.max(0,(satCD[i]||0)-dt);if(!satCD[i])guards.push([satPos(i),8,i])}if(setTier('C')===3)for(let i=0;i<(ranks.drone||0);i++)guards.push([dronePosition(i),10,-1]);if(!guards.length)return;bullets=bullets.filter(b=>{for(const [q,r,si] of guards)if((si<0||!satCD[si])&&Math.abs(b.x-q.x)<r&&Math.abs(b.y-q.y)<r){if(si>=0)satCD[si]=1.5;particles.push({x:b.x,y:b.y,vx:rand(-40,40),vy:rand(-40,40),life:.18,size:1});return false}return true})}
 function dronePosition(i){let a=t*3+i*Math.PI*2/ranks.drone,r=ranks.ultC?42:30;return{x:player.x+Math.cos(a)*r,y:player.y+Math.sin(a)*r}}
-const APP_VERSION='v0.20.1 · 11.01 09:12';
+const APP_VERSION='v0.20.2 · 11.01 09:28';
 let introT=0,introFoes=[],introBul=[],introPlane={y:0,vy:0};
 function showIntro(){state='intro';const o=$('#overlay'),n=progress.mono?0:earnedColors(),map=[0,1,2,3,4,5,0,1,2,3],letters=(w,off)=>[...w].map((ch,k)=>`<span${map[k+off]<n?` style="color:${COLOR_STEPS[map[k+off]].hex}"`:''}>${ch}</span>`).join('');o.hidden=false;o.className='intro';o.innerHTML=`<div class="intro-wrap"><div class="intro-head"><div class="intro-logo"><div>${letters('MONO',0)}</div><div>${letters('FLIGHT',4)}</div></div><small>모노 플라이트</small><p class="intro-tag">흑백 세상에 색을 되찾는 비행</p></div><p class="intro-touch">화면을 터치하세요</p><small class="app-ver">${APP_VERSION}</small></div>`;o.addEventListener('click',leaveIntro,{once:true});hud()}
 function leaveIntro(){if(state!=='intro')return;unlockAudio();state='introOut';syncMusic();titleFanfare();introPlane.y=H*.68+Math.sin(introT*2)*4;introPlane.vy=-80;beep(260,.45,'sawtooth',.03);buzz(30);$('#overlay').classList.add('leaving');setTimeout(()=>{hangar();const ov=$('#overlay');ov.classList.add('from-intro');setTimeout(()=>ov.classList.remove('from-intro'),700)},620)}
