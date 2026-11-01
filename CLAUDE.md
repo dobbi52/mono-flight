@@ -4,7 +4,7 @@
 
 - 저장소: https://github.com/dobbi52/mono-flight
 - 플레이: https://dobbi52.github.io/mono-flight/ (GitHub Pages, main 브랜치가 그대로 배포됨, 1~2분 걸림)
-- 이 문서는 2026-11-01 기준(v0.24.1). 이전 대화 맥락은 여기 있는 게 전부다.
+- 이 문서는 2026-11-02 기준(v0.24.2). 이전 대화 맥락은 여기 있는 게 전부다.
 
 ## 작업 규칙 (사용자 선호, 꼭 지킬 것)
 
@@ -59,7 +59,7 @@
 - **별점**(v0.22.1): 의견 창 맨 위 별 5개(`fbRating`, 별점만 보내도 됨), 보스 스테이지 클리어 결과에 'n챕터 어땠어요? ★★★★★'(`rateAsk(c)`, 누르면 바로 `feedback`에 {text:'',kinds:'챕터 평가',ctx:'챕터 n',rating} 저장, 기기당 챕터마다 한 번 localStorage `mf-rated`). 공용 `fbBase()`. 문서 필드에 `rating`(0~5 정수) 추가, 규칙도 text 0~600자·rating 0~5로 바꿈.
 - **익명 플레이 집계**(v0.22.4, meta.js `statLocal`/`statPing`/`statDev`): 기기마다 localStorage `mf-stat`({id 16자, first, opens, plays}). 실행할 때 opens+1, `start()`마다 plays+1. Firestore `players/{id}`에 setDoc {first,last,opens,plays,reach(깬 최고 스테이지),best(무한),ship,ver,dev('iOS'/'Android'/'PC'+'·앱')}: `cloudInit` 1.5초 뒤, `hangar()` 들어갈 때(20초에 한 번). 이름·이메일 없음. 통계 페이지 `stats.html`(https://dobbi52.github.io/mono-flight/stats.html, noindex): 구글 로그인 → players 전체 읽기 → 전체·오늘·7일·새 기기·앱 설치·평균 출격, 챕터 보스별 도달 막대, 머물러 있는 스테이지, 기기 종류, 최근 60대 표. 규칙: players는 create/update만(필드 hasOnly), read는 관리자 이메일만. 통계 페이지에 의견·별점도 표시(맨 아래, 위에 바로가기 링크): 평균 별점·글 의견 수·7일 의견 수, 별점 분포, 챕터별 평균 별점, 의견 목록(최신 200개, 종류 칩 거르기: 버그·너무 어려움…·챕터 평가·별점만). feedback도 read는 관리자 이메일만 허용.
 - **처음 3분 이탈 기록**(v0.24.1, `statStep(code)`, `mf-stat.fun` 배열, players 문서 `fun`(쉼표 문자열)·`diff`('easy'/'normal'/'')): open(시작 화면) → tap → hangar → launch → d_easy/d_norm → scene(1부 장면) → skip → play → lvup(첫 레벨 업) → 1-1·1-2 결과 w1/w2, l1:초(10초 단위), q1:초. 새 단계마다 1.2초 뒤 statPing, 화면을 떠날 때(visibilitychange) statPing. 규칙이 옛것이면 fun·diff 없이 다시 저장(catch). 통계 페이지에 '처음 3분 · 어디서 나가나' 막대, '1-1에서 처음 진 시간', '난이도' 칸. 규칙 players hasOnly에 'fun','diff' 추가 필요.
-- **출격 지원 표시**(v0.21.4): 보급 상자 덤 `progress.support`(ability/shield)가 있으면 출격 버튼 위 `.launch-bar` 안에 `.support-note` 도트 아이콘(v0.22.3, `SUP_CARD`/`SUP_SHIELD` + `twoTone`, 컬러 이모티콘 대신)과 '이번 출격 시작 때 능력 하나 더' / '방어막 켜고 출격' (+남은 지원 n개). 예전 `.brief` '출격 지원 · … 자동 사용'은 지움.
+- **출격 지원 표시**(v0.21.4): 보급 상자 덤 `progress.support`(ability/shield)가 있으면 출격 버튼 위 `.support-note`(v0.24.2부터 쉬움 표시와 함께 고정 띠 `.launch-bar` 밖 `.launch-notes`로 옮김, `.launch-bar` 배경은 투명 그라데이션 대신 불투명+위 그림자) 도트 아이콘(v0.22.3, `SUP_CARD`/`SUP_SHIELD` + `twoTone`, 컬러 이모티콘 대신)과 '이번 출격 시작 때 능력 하나 더' / '방어막 켜고 출격' (+남은 지원 n개). 예전 `.brief` '출격 지원 · … 자동 사용'은 지움.
 - **v0.21.0 변경**: 무한 모드는 1부 끝(6-5, `PART1`) 클리어 때 열림(6-5 첫 클리어 결과에 '무한 모드 열림!' 카드). 무한 모드는 보스를 깬 챕터만 돈다(`endlessChapters()`, 한 바퀴 = 깬 챕터 수×5웨이브). 레이저 포·거울 장갑은 무한 모드 대신 별 모으기로 얻음(`STAR_GEAR={laser:60,mirror:120}`, `totalStars()`, 결과 화면 '별 n개 달성 보상' 카드, 이미 넘은 기록은 `hangar` 앞부분에서 지급, 잠긴 칸 '★60/★120'). 아래 무한 모드 장비 설명의 WAVE 10/20은 옛 내용.
 - **무한 모드 장비**(v0.20.0, `ENDLESS_GEAR={laser:10,mirror:20}`): 무한 모드 최고 기록 WAVE 10 → 레이저 포 `laser`(주무기, 피해 ×.9, 기본 탄 관통 99·긴 탄 그림 `s.laser`, ★2 명중 범위 +3·굵은 탄 `laserWide`, ★3 3초마다 폭 22 큰 광선 피해 ×4 `laserBig`/`timers.modBeam`), WAVE 20 → 거울 장갑 `mirror`(장갑, 맞으면 반경 70 적탄을 유도탄으로 반사 `reflectNear`, ★2 반전 충전 ×1.15, ★3 10초마다 1.5초 반경 34 반사막 `mirrorField`/`timers.mirrorOn`). `endlessEnd`가 기록 넘을 때 '새 장비 획득!' 카드로 지급, 이미 기록이 있으면 `hangar` 앞부분에서 지급. 장비 칸에서 잠긴 칸은 '무한 W10/W20'. 이제 주무기·장갑·보조 장치 모두 5개.
 - **부품**: 챕터 1은 부품 없음(시작 0, 표시 숨김). 1-5 첫 클리어 때 "장비 해금!"과 함께 부품 300 + 무료 상자 1.
