@@ -87,6 +87,13 @@ async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>'
  const stuck={};docs.filter(p=>(p.plays|0)>0).forEach(p=>{const k=lab(Math.min(50,(p.reach|0)+1));stuck[k]=(stuck[k]||0)+1});
  const stuckRows=Object.entries(stuck).sort((x,y)=>y[1]-x[1]).slice(0,10);
  const recent=docs.slice().sort((x,y)=>y.last-x.last).slice(0,60);
+ const FD=docs.filter(p=>p.fun),fset=p=>(p.fun||'').split(',');const has=(p,c)=>fset(p).some(x=>x===c||x.startsWith(c));
+ const steps=[['게임을 열었다','open'],['시작 화면을 눌렀다','tap'],['격납고를 봤다','hangar'],['출격 버튼을 눌렀다','launch'],['난이도를 골랐다','d_'],['시작 장면을 봤다','scene'],['  └ 넘기기를 눌렀다','skip'],['첫 판을 시작했다','play'],['첫 레벨 업을 했다','lvup'],['1-1을 깼다','w1'],['1-2를 깼다','w2']];
+ const fn=FD.length,funRows=steps.map(([k,c])=>{const v=FD.filter(p=>has(p,c)).length;return [k,v,`${v}명 · ${fn?Math.round(v/fn*100):0}%`]});
+ const dieT={};FD.forEach(p=>fset(p).filter(x=>/^l1:/.test(x)).slice(0,1).forEach(x=>{const k=x.slice(3)+'초';dieT[k]=(dieT[k]||0)+1}));
+ const dieRows=Object.entries(dieT).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
+ const dE=docs.filter(p=>p.diff==='easy').length,dN=docs.filter(p=>p.diff==='normal').length;
+ const funSec=fn?`<h2>처음 3분 · 어디서 나가나</h2>${bars(funRows)}<p class="note">v0.24.1 이후 들어온 기기 ${fn}대 기준이에요. 줄이 크게 짧아지는 곳에서 많이 나가요.</p>${dieRows.length?`<h2>1-1에서 처음 진 시간</h2>${bars(dieRows)}`:''}<h2>난이도</h2>${bars([['쉬움',dE],['보통',dN]])}`:`<h2>처음 3분 · 어디서 나가나</h2><div class="msg">아직 v0.24.1 이후 들어온 기기가 없어요.</div>`;
  const rated=FB.filter(f=>f.rating>0),avg=rated.length?(rated.reduce((s,f)=>s+f.rating,0)/rated.length):0,texts=FB.filter(f=>f.text).length,fb7=FB.filter(f=>now-(f.at||0)<7*D).length;
  const chRows=Array.from({length:10},(_,i)=>{const r=FB.filter(f=>f.kinds==='챕터 평가'&&f.ctx==='챕터 '+(i+1)&&f.rating>0);if(!r.length)return null;const a=r.reduce((s,f)=>s+f.rating,0)/r.length;return [`${i+1}챕터`,a,`★${a.toFixed(1)} · ${r.length}명`]}).filter(Boolean);
  const dist=[5,4,3,2,1].map(n=>[`★${n}`,rated.filter(f=>f.rating===n).length]);
@@ -95,6 +102,7 @@ async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>'
  ${rated.length?`<h2>별점 분포</h2>${bars(dist)}`:''}${chRows.length?`<h2>챕터별 별점</h2><div class="bars">${chRows.map(([k,v,t])=>`<div class="bar"><span>${k}</span><div class="tr"><i style="width:${v/5*100}%"></i></div><em>${t}</em></div>`).join('')}</div><p class="note">보스를 깬 직후 받은 별점의 평균이에요. 낮은 챕터부터 살펴보면 좋아요.</p>`:''}
  <h2>의견 목록</h2><div class="chips">${kindsAll.map(k=>`<button type="button" data-fk="${k}">${k}</button>`).join('')}</div><div id="fb-list"></div>`;
  out.innerHTML=`<p class="note"><a href="#fb-list">↓ 의견 · 별점 바로 보기 (${FB.length})</a></p><div class="grid">${card('전체 기기',n,'링크로 들어와 게임을 연 기기')}${card('오늘 플레이',d1,'최근 24시간')}${card('최근 7일',d7)}${card('오늘 처음 온 기기',new1)}${card('앱으로 설치',app,n?Math.round(app/n*100)+'%':'')}${card('평균 출격',n?(docs.reduce((s,p)=>s+(p.plays|0),0)/n).toFixed(1)+'판':'-')}</div>
+ ${funSec}
  <h2>어디까지 갔나</h2>${bars(funnel)}<p class="note">'3챕터 보스'는 3-5를 깬 기기 수예요. 줄이 갑자기 짧아지는 곳이 많이 그만두는 곳이에요.</p>
  <h2>지금 머물러 있는 스테이지</h2>${bars(stuckRows)}<p class="note">한 판 이상 한 기기가 다음에 깨야 할 스테이지예요. 한 곳에 몰려 있으면 그 스테이지가 어렵다는 뜻일 수 있어요.</p>
  <h2>기기 종류</h2>${bars(Object.entries(devs).sort((x,y)=>y[1]-x[1]))}
