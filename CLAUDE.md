@@ -4,7 +4,7 @@
 
 - 저장소: https://github.com/dobbi52/mono-flight
 - 플레이: https://dobbi52.github.io/mono-flight/ (GitHub Pages, main 브랜치가 그대로 배포됨, 1~2분 걸림)
-- 이 문서는 2026-11-01 기준(v0.19.2). 이전 대화 맥락은 여기 있는 게 전부다.
+- 이 문서는 2026-11-01 기준(v0.19.3). 이전 대화 맥락은 여기 있는 게 전부다.
 
 ## 작업 규칙 (사용자 선호, 꼭 지킬 것)
 
@@ -88,6 +88,7 @@
   - 키보드: 1·2·3 능력, R 다시 뽑기, 방향키+Enter, 결과·격납고 Enter, F 전체화면. 메뉴가 열린 직후 0.4초는 입력 잠금.
   - 버튼 누르면 반전 효과와 틱 소리
   - 단어 단위 줄바꿈(`word-break:keep-all`)
+  - 1부/2부 표시(v0.19.3): 출격 탭 챕터 칸 '1부 · CHAPTER n'/'2부 · CHAPTER n', 1부·2부 시작 장면 왼쪽 위에 처음부터 작은 이름표(`.p-label`, 마지막 컷에서는 큰 제목으로 바뀌며 숨김).
   - 출격 탭 스테이지 그림 칸 높이 고정(v0.19.2): `.stage-card2 .sc-field` 210px, 그림 최대 196px. 넘겨도 출격 버튼 위치가 같다.
   - 메뉴·결과 화면 옆으로 끌림 방지(v0.18.8): `#overlay`·`.panel`·`.help-content`에 `overflow-x:hidden`·`overscroll-behavior-x:none`·`touch-action:pan-y`. 헤드리스에서는 재현이 안 돼서 아이폰에서 확인 필요.
   - 아이폰 길게 누르기 글자 선택 메뉴 방지(v0.17.1): html·body 전체 `user-select:none`·`-webkit-touch-callout:none`(입력칸 제외), `selectstart`·`contextmenu` 막기, 터치 시작 때 선택 해제.
