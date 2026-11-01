@@ -34,6 +34,16 @@ th,td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;white-
 th{background:#f3f3f3}
 .tw{overflow-x:auto;border:2px solid #111}
 .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips button{font-size:13px;padding:7px 10px;background:#fff;color:#111;border:1px solid #999}
+.chips button.on{background:#111;color:#fff;border-color:#111}
+.fb{background:#fff;border:2px solid #111;padding:10px 12px;margin:0 0 8px}
+.fb-h{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--mut)}
+.fb-h .st{color:#c48f00;font-size:15px;letter-spacing:1px}
+.fb-h .k{background:#111;color:#fff;padding:2px 6px}
+.fb-t{margin:8px 0 0;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.fb-t.none{color:var(--mut);font-size:13px}
+.stars-big{font-size:26px;color:#c48f00;letter-spacing:2px}
 </style>
 </head>
 <body>
@@ -55,9 +65,19 @@ $('#login').onclick=async()=>{const pv=new au.GoogleAuthProvider();pv.setCustomP
 $('#reload').onclick=load;
 au.getRedirectResult(auth).catch(()=>{});
 au.onAuthStateChanged(auth,u=>{$('#who').textContent=u?u.email:'';$('#login').hidden=!!u;$('#reload').hidden=!u;if(u)load()});
-async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>';let docs;
+let FB=[],fbKind='전체';
+const starTxt=n=>n?'★'.repeat(n)+'☆'.repeat(5-n):'';
+function fbList(){const box=$('#fb-list');if(!box)return;const list=FB.filter(f=>fbKind==='전체'||(fbKind==='별점만'?!f.text&&f.rating:fbKind==='챕터 평가'?f.kinds==='챕터 평가':(f.kinds||'').split(',').includes(fbKind)));
+ box.innerHTML=list.length?list.slice(0,200).map(f=>`<div class="fb"><div class="fb-h">${f.rating?`<span class="st">${starTxt(f.rating)}</span>`:''}${(f.kinds||'').split(',').filter(Boolean).map(k=>`<span class="k">${esc(k)}</span>`).join('')}<span>${esc(f.ctx||'')}</span><span>진행 ${esc(f.reach||'-')}</span><span>Lv.${f.ship|0}</span><span>${esc(String(f.ver||'').split(' ')[0])}</span><span>${esc(/iPhone|iPad/.test(f.dev||'')?'iOS':/Android/.test(f.dev||'')?'Android':'PC')}</span><span>${f.at?ago(f.at):''}</span></div>${f.text?`<p class="fb-t">${esc(f.text)}</p>`:'<p class="fb-t none">(글 없이 별점만)</p>'}</div>`).join(''):'<div class="msg">해당하는 의견이 없어요.</div>';
+ document.querySelectorAll('[data-fk]').forEach(b=>b.classList.toggle('on',b.dataset.fk===fbKind))}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-fk]');if(b){fbKind=b.dataset.fk;fbList()}});
+async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>';let docs,fbErr='';
  try{docs=(await fs.getDocs(fs.collection(db,'players'))).docs.map(d=>d.data())}
- catch(e){out.innerHTML=`<div class="msg">읽을 수 없어요 (${esc(e.code)}). Firestore 규칙의 players 부분에 이 계정 이메일이 맞게 들어갔는지 확인해 주세요.</div>`;return}
+ catch(e){docs=null}
+ try{FB=(await fs.getDocs(fs.collection(db,'feedback'))).docs.map(d=>d.data()).sort((x,y)=>(y.at||0)-(x.at||0))}
+ catch(e){FB=[];fbErr=e.code||'error'}
+ if(!docs&&fbErr){out.innerHTML=`<div class="msg">읽을 수 없어요 (${esc(fbErr)}). Firestore 규칙에 이 계정 이메일이 맞게 들어갔는지 확인해 주세요.</div>`;return}
+ docs=docs||[];
  const now=Date.now(),D=864e5,n=docs.length,d1=docs.filter(p=>now-p.last<D).length,d7=docs.filter(p=>now-p.last<7*D).length,new1=docs.filter(p=>now-p.first<D).length,app=docs.filter(p=>/앱/.test(p.dev||'')).length,played=docs.filter(p=>(p.plays|0)>0).length;
  const card=(t,v,s='')=>`<div class="card"><small>${t}</small><b>${v}</b><span>${s}</span></div>`;
  const devs={};docs.forEach(p=>{const k=(p.dev||'?').replace('·앱','');devs[k]=(devs[k]||0)+1});
@@ -67,12 +87,19 @@ async function load(){out.innerHTML='<div class="msg">불러오는 중…</div>'
  const stuck={};docs.filter(p=>(p.plays|0)>0).forEach(p=>{const k=lab(Math.min(50,(p.reach|0)+1));stuck[k]=(stuck[k]||0)+1});
  const stuckRows=Object.entries(stuck).sort((x,y)=>y[1]-x[1]).slice(0,10);
  const recent=docs.slice().sort((x,y)=>y.last-x.last).slice(0,60);
- out.innerHTML=`<div class="grid">${card('전체 기기',n,'링크로 들어와 게임을 연 기기')}${card('오늘 플레이',d1,'최근 24시간')}${card('최근 7일',d7)}${card('오늘 처음 온 기기',new1)}${card('앱으로 설치',app,n?Math.round(app/n*100)+'%':'')}${card('평균 출격',n?(docs.reduce((s,p)=>s+(p.plays|0),0)/n).toFixed(1)+'판':'-')}</div>
+ const rated=FB.filter(f=>f.rating>0),avg=rated.length?(rated.reduce((s,f)=>s+f.rating,0)/rated.length):0,texts=FB.filter(f=>f.text).length,fb7=FB.filter(f=>now-(f.at||0)<7*D).length;
+ const chRows=Array.from({length:10},(_,i)=>{const r=FB.filter(f=>f.kinds==='챕터 평가'&&f.ctx==='챕터 '+(i+1)&&f.rating>0);if(!r.length)return null;const a=r.reduce((s,f)=>s+f.rating,0)/r.length;return [`${i+1}챕터`,a,`★${a.toFixed(1)} · ${r.length}명`]}).filter(Boolean);
+ const dist=[5,4,3,2,1].map(n=>[`★${n}`,rated.filter(f=>f.rating===n).length]);
+ const kindsAll=['전체','버그','너무 어려움','너무 쉬움','헷갈림','좋았던 점','기타','챕터 평가','별점만'];
+ const fbSec=fbErr?`<h2>의견 · 별점</h2><div class="msg">의견을 읽을 수 없어요 (${esc(fbErr)}). Firestore 규칙의 feedback 부분을 새로 드린 규칙으로 바꿔 주세요.</div>`:`<h2>의견 · 별점</h2><div class="grid">${card('평균 별점',rated.length?avg.toFixed(1):'-',rated.length?`<span class="stars-big">${starTxt(Math.round(avg))}</span><br>${rated.length}개`:'아직 없어요')}${card('글로 남긴 의견',texts)}${card('최근 7일 의견',fb7)}</div>
+ ${rated.length?`<h2>별점 분포</h2>${bars(dist)}`:''}${chRows.length?`<h2>챕터별 별점</h2><div class="bars">${chRows.map(([k,v,t])=>`<div class="bar"><span>${k}</span><div class="tr"><i style="width:${v/5*100}%"></i></div><em>${t}</em></div>`).join('')}</div><p class="note">보스를 깬 직후 받은 별점의 평균이에요. 낮은 챕터부터 살펴보면 좋아요.</p>`:''}
+ <h2>의견 목록</h2><div class="chips">${kindsAll.map(k=>`<button type="button" data-fk="${k}">${k}</button>`).join('')}</div><div id="fb-list"></div>`;
+ out.innerHTML=`<p class="note"><a href="#fb-list">↓ 의견 · 별점 바로 보기 (${FB.length})</a></p><div class="grid">${card('전체 기기',n,'링크로 들어와 게임을 연 기기')}${card('오늘 플레이',d1,'최근 24시간')}${card('최근 7일',d7)}${card('오늘 처음 온 기기',new1)}${card('앱으로 설치',app,n?Math.round(app/n*100)+'%':'')}${card('평균 출격',n?(docs.reduce((s,p)=>s+(p.plays|0),0)/n).toFixed(1)+'판':'-')}</div>
  <h2>어디까지 갔나</h2>${bars(funnel)}<p class="note">'3챕터 보스'는 3-5를 깬 기기 수예요. 줄이 갑자기 짧아지는 곳이 많이 그만두는 곳이에요.</p>
  <h2>지금 머물러 있는 스테이지</h2>${bars(stuckRows)}<p class="note">한 판 이상 한 기기가 다음에 깨야 할 스테이지예요. 한 곳에 몰려 있으면 그 스테이지가 어렵다는 뜻일 수 있어요.</p>
  <h2>기기 종류</h2>${bars(Object.entries(devs).sort((x,y)=>y[1]-x[1]))}
  <h2>최근 플레이한 기기 (최대 60)</h2><div class="tw"><table><tr><th>마지막</th><th>진행</th><th>기체</th><th>실행</th><th>출격</th><th>무한</th><th>기기</th><th>버전</th></tr>${recent.map(p=>`<tr><td>${ago(p.last)}</td><td>${lab(p.reach|0)}</td><td>Lv.${p.ship|0}</td><td>${p.opens|0}</td><td>${p.plays|0}</td><td>${p.best?'W'+p.best:'-'}</td><td>${esc(p.dev)}</td><td>${esc(p.ver)}</td></tr>`).join('')}</table></div>
- <p class="note">의견과 별점은 Firebase 콘솔의 feedback에서 볼 수 있어요: <a href="https://console.firebase.google.com/project/mono-flight-6b049/firestore/data">Firestore 데이터</a></p>`}
+ ${fbSec}`;fbList()}
 </script>
 </body>
 </html>
